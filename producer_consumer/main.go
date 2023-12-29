@@ -6,8 +6,6 @@ import (
 	"os"
 	"runtime/trace"
 	"sync"
-
-	"golang.org/x/tools/go/analysis/passes/defers"
 )
 
 const MAX_PRODUCERS_COUNT_PER_CHANNEL = 10
@@ -40,14 +38,14 @@ func process() {
 	ch1 := make(chan int, MAX_PRODUCERS_COUNT_PER_CHANNEL)
 	ch2 := make(chan int, MAX_PRODUCERS_COUNT_PER_CHANNEL)
 
-	// 1 ~ 100 までの整数を channel に送信する
-	go produce(100, ch1, ctx)
+	// 0 ~ 99 までの整数を channel に送信する
+	go produce(100, ch1, ch2, ctx)
 
 	// channel からデータを受信する
 	for i := 0; i < CONSUMERS_COUNT; i++ {
 		i := i
 		wg.Add(1)
-		go consume(i, ch1, &wg, ctx)
+		go consume(i, ch1, ch2, &wg, ctx)
 	}
 
 	wg.Wait()
@@ -80,7 +78,14 @@ func produce(num int, ch1 chan int, ch2 chan int, ctx context.Context) {
 func consume(idx int, ch1 chan int, ch2 chan int, wg *sync.WaitGroup, ctx context.Context) {
 	defer trace.StartRegion(ctx, "consume").End()
 	defer wg.Done()
-	for i := range ch {
-		log.Printf("consumer#%d consumed %d\n", idx, i)
+	for {
+		select {
+		case i := <-ch1:
+			log.Printf("consumer#%d consumed %d from %s\n", idx, i, "ch1")
+		case i := <-ch2:
+			log.Printf("consumer#%d consumed %d from %s\n", idx, i, "ch2")
+		default:
+			return
+		}
 	}
 }
