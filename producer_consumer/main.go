@@ -64,12 +64,12 @@ func produce(num int, ch1 chan int, ch2 chan int, ctx context.Context) {
 		go func() {
 			defer pg.Done()
 			select {
-				case ch1 <- i:
-					// do nothing
-				case ch2 <- i:
-					// do nothing
-				default:
-					// do nothing
+			case ch1 <- i:
+				// do nothing
+			case ch2 <- i:
+				// do nothing
+			default:
+				// do nothing
 			}
 			log.Printf("procuded %d\n", i)
 		}()
