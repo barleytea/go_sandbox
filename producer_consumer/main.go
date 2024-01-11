@@ -4,11 +4,11 @@ import (
 	"context"
 	"log"
 	"os"
+	"runtime"
 	"runtime/trace"
 	"sync"
 )
 
-const MAX_PRODUCERS_COUNT_PER_CHANNEL = 10
 const CONSUMERS_COUNT = 10
 
 func main() {
@@ -33,59 +33,44 @@ func main() {
 func process() {
 	ctx, task := trace.NewTask(context.Background(), "process")
 	defer task.End()
+	defer log.Printf("num goroutine: %d\n", runtime.NumGoroutine())
 
 	var wg sync.WaitGroup
-	ch1 := make(chan int, MAX_PRODUCERS_COUNT_PER_CHANNEL)
-	ch2 := make(chan int, MAX_PRODUCERS_COUNT_PER_CHANNEL)
+	ch := make(chan int, 10)
 
 	// 0 ~ 99 までの整数を channel に送信する
-	go produce(100, ch1, ch2, ctx)
+	go produce(100, ch, ctx)
 
 	// channel からデータを受信する
 	for i := 0; i < CONSUMERS_COUNT; i++ {
 		i := i
 		wg.Add(1)
-		go consume(i, ch1, ch2, &wg, ctx)
+		go consume(i, ch, &wg, ctx)
 	}
 
 	wg.Wait()
 }
 
-func produce(num int, ch1 chan int, ch2 chan int, ctx context.Context) {
+func produce(num int, ch chan int, ctx context.Context) {
 	defer trace.StartRegion(ctx, "produce").End()
 	var pg sync.WaitGroup
-	defer close(ch1)
-	defer close(ch2)
+	defer close(ch)
 	for i := 0; i < num; i++ {
 		i := i
 		pg.Add(1)
 		go func() {
 			defer pg.Done()
-			select {
-			case ch1 <- i:
-				// do nothing
-			case ch2 <- i:
-				// do nothing
-			default:
-				// do nothing
-			}
+			ch <- i
 			log.Printf("procuded %d\n", i)
 		}()
 	}
 	pg.Wait()
 }
 
-func consume(idx int, ch1 chan int, ch2 chan int, wg *sync.WaitGroup, ctx context.Context) {
+func consume(idx int, ch chan int, wg *sync.WaitGroup, ctx context.Context) {
 	defer trace.StartRegion(ctx, "consume").End()
 	defer wg.Done()
-	for {
-		select {
-		case i := <-ch1:
-			log.Printf("consumer#%d consumed %d from %s\n", idx, i, "ch1")
-		case i := <-ch2:
-			log.Printf("consumer#%d consumed %d from %s\n", idx, i, "ch2")
-		default:
-			return
-		}
+	for i := range ch {
+		log.Printf("consumer %d: %d\n", idx, i)
 	}
 }
