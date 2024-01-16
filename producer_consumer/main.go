@@ -4,7 +4,6 @@ import (
 	"context"
 	"log"
 	"os"
-	"runtime"
 	"runtime/trace"
 	"sync"
 )
@@ -33,12 +32,11 @@ func main() {
 func process() {
 	ctx, task := trace.NewTask(context.Background(), "process")
 	defer task.End()
-	defer log.Printf("num goroutine: %d\n", runtime.NumGoroutine())
 
 	var wg sync.WaitGroup
 	ch := make(chan int, 10)
 
-	// 0 ~ 99 までの整数を channel に送信する
+	// 1 ~ 100 までの整数を channel に送信する
 	go produce(100, ch, ctx)
 
 	// channel からデータを受信する
@@ -55,13 +53,12 @@ func produce(num int, ch chan int, ctx context.Context) {
 	defer trace.StartRegion(ctx, "produce").End()
 	var pg sync.WaitGroup
 	defer close(ch)
-	for i := 0; i < num; i++ {
+	for i := 1; i <= num; i++ {
 		i := i
 		pg.Add(1)
 		go func() {
 			defer pg.Done()
 			ch <- i
-			log.Printf("procuded %d\n", i)
 		}()
 	}
 	pg.Wait()
@@ -71,6 +68,6 @@ func consume(idx int, ch chan int, wg *sync.WaitGroup, ctx context.Context) {
 	defer trace.StartRegion(ctx, "consume").End()
 	defer wg.Done()
 	for i := range ch {
-		log.Printf("consumer %d: %d\n", idx, i)
+		log.Printf("#%d: consumed %d\n", idx, i)
 	}
 }
