@@ -2,7 +2,6 @@ package list
 
 import "testing"
 
-
 func TestList_NewList(t *testing.T) {
 	l := NewList[int]()
 	if (l.head != nil) {
@@ -133,5 +132,29 @@ func TestReduce(t *testing.T) {
 
 	if (result != 15) {
 		t.Errorf("result should be 15. Got %d", result)
+	}
+}
+
+func TestRemove(t *testing.T) {
+	l := NewList[int]()
+	l.Add(1)
+	l.Add(2)
+	l.Add(3)
+	l.Add(4)
+	l.Add(5)
+
+	l.Remove(2)
+
+	if (l.Get(0) != 1) {
+		t.Error("l.Get(0) should be 1")
+	}
+	if (l.Get(1) != 2) {
+		t.Error("l.Get(1) should be 2")
+	}
+	if (l.Get(2) != 4) {
+		t.Error("l.Get(2) should be 4")
+	}
+	if (l.Get(3) != 5) {
+		t.Error("l.Get(3) should be 5")
 	}
 }

@@ -31,6 +31,23 @@ func (l *List[T]) Get(index int) T {
 	return n.value
 }
 
+func (l *List[T]) Remove(index int) {
+	n := l.head
+	for i := 0; i < index; i++ {
+		n = n.next
+	}
+	if n.prev != nil {
+		n.prev.next = n.next
+	} else {
+		l.head = n.next
+	}
+	if n.next != nil {
+		n.next.prev = n.prev
+	} else {
+		l.tail = n.prev
+	}
+}
+
 func (l *List[T]) Filter(f func(T) bool) *List[T] {
 	newList := NewList[T]()
 	n := l.head
